@@ -1,0 +1,16 @@
+{
+  "roles": [],
+  "components": [
+    {
+      "name": "Web App",
+      "type": "frontend",
+      "stores_sensitive_data": true,
+      "has_authentication": true,
+      "is_untrusted": false,
+      "has_hardcoded_credentials": false,
+      "logs_sensitive_data": false,
+      "exposes_session_tokens": false
+    }
+  ],
+  "connections": []
+}

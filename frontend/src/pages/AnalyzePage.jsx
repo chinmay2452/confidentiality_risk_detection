@@ -7,18 +7,22 @@ import RiskTable from '../components/RiskTable';
 import { analyzeArchitecture, saveArchitecture } from '../api/api';
 
 const SAMPLE_JSON = {
+    roles: [
+        { name: "Admin", privileges: ["read", "write", "delete", "admin"] },
+        { name: "User", privileges: ["read"] }
+    ],
     components: [
-        { name: "Web App", type: "frontend", stores_sensitive_data: true, has_authentication: true },
-        { name: "API Server", type: "backend", stores_sensitive_data: true, has_authentication: true },
-        { name: "User DB", type: "database", stores_sensitive_data: true, has_authentication: true },
-        { name: "Payment Gateway", type: "third-party", stores_sensitive_data: false, has_authentication: true },
-        { name: "Analytics API", type: "api", stores_sensitive_data: false, has_authentication: false }
+        { name: "Web App", type: "frontend", stores_sensitive_data: true, has_authentication: true, is_untrusted: false, has_hardcoded_credentials: false, logs_sensitive_data: false, exposes_session_tokens: false },
+        { name: "API Server", type: "backend", stores_sensitive_data: true, has_authentication: true, is_untrusted: false, has_hardcoded_credentials: false, logs_sensitive_data: false, exposes_session_tokens: false },
+        { name: "User DB", type: "database", stores_sensitive_data: true, has_authentication: true, is_untrusted: false, has_hardcoded_credentials: false, logs_sensitive_data: false, exposes_session_tokens: false },
+        { name: "Payment Gateway", type: "third-party", stores_sensitive_data: false, has_authentication: true, is_untrusted: true, has_hardcoded_credentials: false, logs_sensitive_data: true, exposes_session_tokens: false },
+        { name: "Analytics API", type: "api", stores_sensitive_data: false, has_authentication: false, is_untrusted: false, has_hardcoded_credentials: false, logs_sensitive_data: false, exposes_session_tokens: false }
     ],
     connections: [
-        { source: "Web App", target: "API Server", encrypted: true, has_authentication: true },
-        { source: "API Server", target: "User DB", encrypted: false, has_authentication: true },
-        { source: "API Server", target: "Payment Gateway", encrypted: true, has_authentication: true },
-        { source: "Web App", target: "Analytics API", encrypted: false, has_authentication: false }
+        { source: "Web App", target: "API Server", encrypted: true, has_authentication: true, missing_authorization_headers: false },
+        { source: "API Server", target: "User DB", encrypted: false, has_authentication: true, missing_authorization_headers: false },
+        { source: "API Server", target: "Payment Gateway", encrypted: true, has_authentication: true, missing_authorization_headers: false },
+        { source: "Web App", target: "Analytics API", encrypted: false, has_authentication: false, missing_authorization_headers: true }
     ]
 };
 
@@ -71,7 +75,8 @@ export default function AnalyzePage() {
             const parsed = JSON.parse(jsonText);
             setArchitecture(parsed);
             runAnalysis(parsed);
-        } catch {
+        } catch (e) {
+            alert("Invalid JSON format: " + e.message);
             setError('Invalid JSON. Please check the format.');
         }
     };
@@ -93,7 +98,17 @@ export default function AnalyzePage() {
             const result = await analyzeArchitecture(data);
             setReport(result);
         } catch (err) {
-            setError(err.response?.data?.detail || 'Analysis failed. Make sure the backend is running.');
+            let errMsg = 'Analysis failed. Make sure the backend is running.';
+            if (err.response?.data?.detail) {
+                const detail = err.response.data.detail;
+                if (typeof detail === 'string') {
+                    errMsg = detail;
+                } else if (Array.isArray(detail)) {
+                    errMsg = detail.map(d => d.msg || JSON.stringify(d)).join(' | ');
+                }
+            }
+            alert("Backend Error: " + errMsg);
+            setError(errMsg);
         } finally {
             setLoading(false);
         }
