@@ -7,6 +7,7 @@ FastAPI application entry point.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes.analysis import router as analysis_router
+from app.routes.input import router as input_router
 
 app = FastAPI(
     title="Architecture Confidentiality Risk Detector",
@@ -28,6 +29,7 @@ app.add_middleware(
 
 # Register routes
 app.include_router(analysis_router, prefix="/api")
+app.include_router(input_router, prefix="/api")
 
 
 @app.get("/")

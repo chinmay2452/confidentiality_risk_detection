@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
 import AnalyzePage from './pages/AnalyzePage';
 import ReportPage from './pages/ReportPage';
+import InputWorkflowPage from './pages/InputWorkflowPage';
 
 export default function App() {
     return (
@@ -10,6 +11,7 @@ export default function App() {
             <Navbar />
             <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/input" element={<InputWorkflowPage />} />
                 <Route path="/analyze" element={<AnalyzePage />} />
                 <Route path="/report/:id" element={<ReportPage />} />
             </Routes>

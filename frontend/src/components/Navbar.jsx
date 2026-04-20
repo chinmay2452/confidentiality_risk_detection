@@ -11,6 +11,9 @@ export default function Navbar() {
                 <NavLink to="/" className={({ isActive }) => isActive ? 'active' : ''} end>
                     Dashboard
                 </NavLink>
+                <NavLink to="/input" className={({ isActive }) => isActive ? 'active' : ''}>
+                    Input
+                </NavLink>
                 <NavLink to="/analyze" className={({ isActive }) => isActive ? 'active' : ''}>
                     Analyze
                 </NavLink>

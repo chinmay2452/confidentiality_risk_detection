@@ -50,4 +50,44 @@ export const getReports = async () => {
     return response.data;
 };
 
+/**
+ * Validate a workflow draft (components, data_flows, roles).
+ */
+export const validateDraft = async (draft) => {
+    const response = await api.post('/input/validate', draft);
+    return response.data;
+};
+
+/**
+ * Convert a draft into analyzer-ready model.
+ */
+export const generateModelFromDraft = async (draft) => {
+    const response = await api.post('/input/model', draft);
+    return response.data;
+};
+
+/**
+ * Create a temporary draft session.
+ */
+export const createDraftSession = async () => {
+    const response = await api.post('/input/sessions');
+    return response.data;
+};
+
+/**
+ * Update a draft session.
+ */
+export const updateDraftSession = async (sessionId, draft) => {
+    const response = await api.put(`/input/sessions/${sessionId}`, draft);
+    return response.data;
+};
+
+/**
+ * Fetch a draft session.
+ */
+export const getDraftSession = async (sessionId) => {
+    const response = await api.get(`/input/sessions/${sessionId}`);
+    return response.data;
+};
+
 export default api;

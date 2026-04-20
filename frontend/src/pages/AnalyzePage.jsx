@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ArchitectureForm from '../components/ArchitectureForm';
 import JsonUploader from '../components/JsonUploader';
@@ -32,6 +32,25 @@ export default function AnalyzePage() {
     const [error, setError] = useState('');
     const [saveName, setSaveName] = useState('');
     const [saved, setSaved] = useState(false);
+
+    // Optional: allow other pages (like /input) to prefill an analysis run.
+    // This keeps /input independent while still reusing the analysis UI.
+    useEffect(() => {
+        try {
+            const prefill = sessionStorage.getItem('prefill_architecture_json');
+            if (!prefill) return;
+            const parsed = JSON.parse(prefill);
+            sessionStorage.removeItem('prefill_architecture_json');
+            setActiveTab('json');
+            setArchitecture(parsed);
+            setJsonText(JSON.stringify(parsed, null, 2));
+            setReport(null);
+            setError('');
+            setSaved(false);
+        } catch {
+            // ignore
+        }
+    }, []);
 
     const handleJsonLoaded = (json) => {
         setArchitecture(json);
