@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import RiskTable from '../components/RiskTable';
 import RiskSummaryCards from '../components/RiskSummaryCards';
 import RiskDistributionCharts from '../components/RiskDistributionCharts';
+import MitigationPanel, { getUnfixedCounts, loadCompletedSteps } from '../components/MitigationPanel';
+import NotificationToast, { generateAlerts } from '../components/NotificationToast';
 import { processRisk, sortRisks } from '../utils/riskScoring';
 import { insertClassifiedRisks } from '../api/supabaseClient';
-import { analyzeArchitecture, saveArchitecture } from '../api/api';
+import { analyzeArchitecture, saveArchitecture, mitigateFromRisks } from '../api/api';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
 
@@ -13,11 +15,16 @@ export default function AnalyzeResultsPage() {
     const navigate = useNavigate();
     const [architecture, setArchitecture] = useState(null);
     const [report, setReport] = useState(null);
+    const [mitigationReport, setMitigationReport] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [mitigationLoading, setMitigationLoading] = useState(false);
     const [error, setError] = useState('');
     const [saveName, setSaveName] = useState('');
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [activeTab, setActiveTab] = useState('risks'); // 'risks' | 'mitigations'
+    const [notifications, setNotifications] = useState([]);
+    const [liveUnfixedCritical, setLiveUnfixedCritical] = useState(0);
     
     const reportRef = useRef(null);
 
@@ -45,7 +52,9 @@ export default function AnalyzeResultsPage() {
         setLoading(true);
         setError('');
         setReport(null);
+        setMitigationReport(null);
         setSaved(false);
+        setNotifications([]);
         try {
             let result;
             if (!data) {
@@ -57,9 +66,11 @@ export default function AnalyzeResultsPage() {
             }
             
             const processedRisks = sortRisks((result.risks || []).map(processRisk));
-            setReport({ ...result, risks: processedRisks });
-            // Optionally clear the pending analysis if we assert it's consumed
-            // sessionStorage.removeItem('pending_analysis_json'); 
+            const reportData = { ...result, risks: processedRisks };
+            setReport(reportData);
+
+            // Auto-run mitigation engine
+            fetchMitigations(result.risks || []);
         } catch (err) {
             let errMsg = 'Analysis failed. Make sure the backend is running.';
             if (err.response?.data?.detail) {
@@ -74,6 +85,33 @@ export default function AnalyzeResultsPage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchMitigations = async (rawRisks) => {
+        if (!rawRisks || rawRisks.length === 0) return;
+        setMitigationLoading(true);
+        try {
+            const mitigation = await mitigateFromRisks(rawRisks);
+            setMitigationReport(mitigation);
+
+            // Compute initial live critical count
+            const initialCompleted = loadCompletedSteps();
+            const counts = getUnfixedCounts(mitigation, initialCompleted);
+            setLiveUnfixedCritical(counts.critical);
+
+            // Generate and show alerts
+            const alerts = generateAlerts(mitigation);
+            setNotifications(alerts);
+        } catch (err) {
+            console.error('Mitigation engine error:', err);
+            // Non-blocking — we still have the risk report
+        } finally {
+            setMitigationLoading(false);
+        }
+    };
+
+    const dismissNotification = (id) => {
+        setNotifications(prev => prev.filter(n => n.id !== id));
     };
 
     const handleSaveToDatabase = async () => {
@@ -153,6 +191,9 @@ export default function AnalyzeResultsPage() {
 
     return (
         <div className="page-container">
+            {/* Toast Notifications */}
+            <NotificationToast notifications={notifications} onDismiss={dismissNotification} />
+
             <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
                     <h1>Analysis Results</h1>
@@ -170,16 +211,80 @@ export default function AnalyzeResultsPage() {
 
             {saved && <div className="alert alert-success">✅ Report successfully saved to database!</div>}
 
-            <div ref={reportRef} style={{ padding: '0 0.5rem', marginTop: '1rem' }}>
-                <RiskDistributionCharts risks={report.risks} />
-                <RiskSummaryCards risks={report.risks} />
-
-                {/* Detected Risks List */}
-                <div className="card">
-                    <div className="card-title"><span className="icon">⚠️</span> Rule Engine Detections</div>
-                    <RiskTable risks={report.risks} />
-                </div>
+            {/* Tab Switcher */}
+            <div className="tabs" style={{ marginBottom: '1.5rem' }}>
+                <button
+                    className={`tab-btn ${activeTab === 'risks' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('risks')}
+                >
+                    ⚠️ Risk Analysis
+                </button>
+                <button
+                    className={`tab-btn ${activeTab === 'mitigations' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('mitigations')}
+                    style={{ position: 'relative' }}
+                >
+                    🛡️ Mitigation & Fixes
+                    {mitigationReport && liveUnfixedCritical > 0 && (
+                        <span style={{
+                            position: 'absolute',
+                            top: '-4px',
+                            right: '-4px',
+                            width: '18px',
+                            height: '18px',
+                            background: '#dc2626',
+                            borderRadius: '50%',
+                            fontSize: '0.65rem',
+                            fontWeight: 700,
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                        }}>
+                            {liveUnfixedCritical}
+                        </span>
+                    )}
+                </button>
             </div>
+
+            {/* Tab Content */}
+            {activeTab === 'risks' && (
+                <div ref={reportRef} style={{ padding: '0 0.5rem', marginTop: '1rem' }}>
+                    <RiskDistributionCharts risks={report.risks} />
+                    <RiskSummaryCards risks={report.risks} />
+
+                    {/* Detected Risks List */}
+                    <div className="card">
+                        <div className="card-title"><span className="icon">⚠️</span> Rule Engine Detections</div>
+                        <RiskTable risks={report.risks} />
+                    </div>
+                </div>
+            )}
+
+            {activeTab === 'mitigations' && (
+                <div style={{ marginTop: '1rem' }}>
+                    {mitigationLoading ? (
+                        <div className="loading-overlay">
+                            <span className="loading-spinner" style={{ width: '36px', height: '36px' }}></span>
+                            <span>Generating mitigation recommendations...</span>
+                        </div>
+                    ) : mitigationReport ? (
+                        <MitigationPanel 
+                            mitigationReport={mitigationReport} 
+                            onStepsChange={(completed) => {
+                                const counts = getUnfixedCounts(mitigationReport, completed);
+                                setLiveUnfixedCritical(counts.critical);
+                            }}
+                        />
+                    ) : (
+                        <div className="empty-state">
+                            <div className="empty-icon">🛡️</div>
+                            <h3>Mitigation engine unavailable</h3>
+                            <p>The mitigation engine could not generate recommendations. Make sure the backend is running.</p>
+                        </div>
+                    )}
+                </div>
+            )}
 
             {/* Save to DB Component */}
             {!saved && (

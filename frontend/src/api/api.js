@@ -90,4 +90,21 @@ export const getDraftSession = async (sessionId) => {
     return response.data;
 };
 
+/**
+ * Run architecture analysis + mitigation engine.
+ * Returns a MitigationReport with detailed fixes.
+ */
+export const mitigateArchitecture = async (architectureData) => {
+    const response = await api.post('/mitigate', architectureData);
+    return response.data;
+};
+
+/**
+ * Generate mitigation report from pre-computed risks.
+ */
+export const mitigateFromRisks = async (risks) => {
+    const response = await api.post('/mitigate/from-risks', risks);
+    return response.data;
+};
+
 export default api;

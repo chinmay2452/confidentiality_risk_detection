@@ -17,6 +17,9 @@ export default function Navbar() {
                 <NavLink to="/analyze" className={({ isActive }) => isActive ? 'active' : ''}>
                     Analyze Results
                 </NavLink>
+                <NavLink to="/mitigate" className={({ isActive }) => isActive ? 'active' : ''}>
+                    Mitigations
+                </NavLink>
             </div>
         </nav>
     );

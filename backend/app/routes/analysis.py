@@ -11,9 +11,11 @@ Endpoints:
 
 import json
 import traceback
+from typing import List
 from fastapi import APIRouter, HTTPException
-from app.models.schemas import ArchitectureInput, ArchitectureCreate, RiskReport
+from app.models.schemas import ArchitectureInput, ArchitectureCreate, RiskReport, Risk
 from app.services.analyzer import analyze_architecture
+from app.services.mitigation_engine import generate_mitigation, MitigationReport
 
 router = APIRouter()
 
@@ -138,3 +140,32 @@ def list_reports():
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch reports: {str(e)}")
+
+
+@router.post("/mitigate", response_model=MitigationReport)
+def mitigate(payload: ArchitectureInput):
+    """
+    Analyze architecture and return a full mitigation report.
+    Chains: architecture → rule engine → mitigation engine.
+    """
+    try:
+        report = analyze_architecture(payload)
+        mitigation = generate_mitigation(report.risks)
+        return mitigation
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Mitigation failed: {str(e)}")
+
+
+@router.post("/mitigate/from-risks", response_model=MitigationReport)
+def mitigate_from_risks(risks: List[Risk]):
+    """
+    Generate mitigation report from a pre-computed list of risks.
+    Useful when the client already has analysis results.
+    """
+    try:
+        mitigation = generate_mitigation(risks)
+        return mitigation
+    except Exception as e:
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Mitigation failed: {str(e)}")

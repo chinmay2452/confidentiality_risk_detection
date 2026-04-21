@@ -3,6 +3,7 @@ import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
 import InputArchitecturePage from './pages/InputArchitecturePage';
 import AnalyzeResultsPage from './pages/AnalyzeResultsPage';
+import MitigationPage from './pages/MitigationPage';
 import ReportPage from './pages/ReportPage';
 
 export default function App() {
@@ -13,6 +14,7 @@ export default function App() {
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/input" element={<InputArchitecturePage />} />
                 <Route path="/analyze" element={<AnalyzeResultsPage />} />
+                <Route path="/mitigate" element={<MitigationPage />} />
                 <Route path="/report/:id" element={<ReportPage />} />
             </Routes>
         </Router>
