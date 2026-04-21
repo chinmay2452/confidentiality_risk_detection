@@ -1,9 +1,9 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Dashboard from './pages/Dashboard';
-import AnalyzePage from './pages/AnalyzePage';
+import InputArchitecturePage from './pages/InputArchitecturePage';
+import AnalyzeResultsPage from './pages/AnalyzeResultsPage';
 import ReportPage from './pages/ReportPage';
-import InputWorkflowPage from './pages/InputWorkflowPage';
 
 export default function App() {
     return (
@@ -11,8 +11,8 @@ export default function App() {
             <Navbar />
             <Routes>
                 <Route path="/" element={<Dashboard />} />
-                <Route path="/input" element={<InputWorkflowPage />} />
-                <Route path="/analyze" element={<AnalyzePage />} />
+                <Route path="/input" element={<InputArchitecturePage />} />
+                <Route path="/analyze" element={<AnalyzeResultsPage />} />
                 <Route path="/report/:id" element={<ReportPage />} />
             </Routes>
         </Router>

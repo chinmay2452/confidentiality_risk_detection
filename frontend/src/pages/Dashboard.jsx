@@ -82,7 +82,7 @@ export default function Dashboard() {
                     <div className="stat-value">{reports.length}</div>
                     <div className="stat-label">Reports</div>
                 </div>
-                <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/analyze')}>
+                <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/input')}>
                     <div className="stat-value" style={{ color: 'var(--accent-primary)' }}>+</div>
                     <div className="stat-label">New Analysis</div>
                 </div>
@@ -104,13 +104,13 @@ export default function Dashboard() {
                         <div className="empty-state">
                             <div className="empty-icon">📐</div>
                             <h3>No architectures yet</h3>
-                            <p>Go to the Analyze page to submit your first architecture for analysis.</p>
+                            <p>Go to the Input Architecture page to define your first architecture for analysis.</p>
                             <button
                                 className="btn btn-primary"
                                 style={{ marginTop: '1rem' }}
-                                onClick={() => navigate('/analyze')}
+                                onClick={() => navigate('/input')}
                             >
-                                Analyze Architecture
+                                Define Architecture
                             </button>
                         </div>
                     ) : (

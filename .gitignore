@@ -121,3 +121,14 @@ cython_debug/
 
 # MacOS
 .DS_Store
+
+# Node.js and React Frontend
+node_modules/
+dist/
+dist-ssr/
+*.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+.vite/

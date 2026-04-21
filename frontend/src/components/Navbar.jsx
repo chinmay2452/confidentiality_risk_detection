@@ -12,10 +12,10 @@ export default function Navbar() {
                     Dashboard
                 </NavLink>
                 <NavLink to="/input" className={({ isActive }) => isActive ? 'active' : ''}>
-                    Input
+                    Input Architecture
                 </NavLink>
                 <NavLink to="/analyze" className={({ isActive }) => isActive ? 'active' : ''}>
-                    Analyze
+                    Analyze Results
                 </NavLink>
             </div>
         </nav>
