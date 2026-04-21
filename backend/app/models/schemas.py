@@ -11,6 +11,10 @@ class Component(BaseModel):
     type: str  # frontend, backend, database, api, third-party
     stores_sensitive_data: bool = False
     has_authentication: bool = True
+    is_untrusted: bool = False
+    has_hardcoded_credentials: bool = False
+    logs_sensitive_data: bool = False
+    exposes_session_tokens: bool = False
 
 
 class Connection(BaseModel):
@@ -19,17 +23,7 @@ class Connection(BaseModel):
     target: str
     encrypted: bool = False
     has_authentication: bool = True
-
-
-class ArchitectureInput(BaseModel):
-    """Full architecture definition submitted for analysis."""
-    components: List[Component]
-    connections: List[Connection]
-
-
-# ─── Draft/Input Activity Models (richer user input) ─────────
-
-SensitivityLevel = Literal["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"]
+    missing_authorization_headers: bool = False
 
 
 class Role(BaseModel):
@@ -37,6 +31,19 @@ class Role(BaseModel):
     name: str
     description: Optional[str] = None
     privileges: List[str] = Field(default_factory=list)
+
+
+class ArchitectureInput(BaseModel):
+    """Full architecture definition submitted for analysis."""
+    components: List[Component]
+    connections: List[Connection]
+    roles: List[Role] = Field(default_factory=list)
+
+
+# ─── Draft/Input Activity Models (richer user input) ─────────
+
+SensitivityLevel = Literal["PUBLIC", "INTERNAL", "CONFIDENTIAL", "RESTRICTED"]
+
 
 
 class DataFlow(BaseModel):
@@ -238,4 +245,4 @@ def draft_to_analysis_input(draft: ArchitectureDraft) -> ArchitectureInput:
         )
         for f in draft.data_flows
     ]
-    return ArchitectureInput(components=draft.components, connections=connections)
+    return ArchitectureInput(components=draft.components, connections=connections, roles=draft.roles)

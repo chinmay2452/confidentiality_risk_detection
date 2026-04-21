@@ -19,7 +19,7 @@ def analyze_architecture(architecture: ArchitectureInput, name: str = "Untitled"
         3. Build and return a structured risk report.
     """
     # Step 1 & 2: evaluate
-    risks = evaluate_architecture(architecture.components, architecture.connections)
+    risks = evaluate_architecture(architecture.components, architecture.connections, architecture.roles)
 
     # Step 3: classify
     high = sum(1 for r in risks if r.severity == "HIGH")
