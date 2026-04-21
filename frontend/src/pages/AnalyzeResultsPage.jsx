@@ -1,6 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import RiskTable from '../components/RiskTable';
+import RiskSummaryCards from '../components/RiskSummaryCards';
+import RiskDistributionCharts from '../components/RiskDistributionCharts';
+import { processRisk, sortRisks } from '../utils/riskScoring';
+import { insertClassifiedRisks } from '../api/supabaseClient';
 import { analyzeArchitecture, saveArchitecture } from '../api/api';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
@@ -21,8 +25,9 @@ export default function AnalyzeResultsPage() {
         const storedJsonStr = sessionStorage.getItem('pending_analysis_json');
         
         if (!storedJsonStr) {
-            setError('No architecture data found. Please input architecture first.');
-            setLoading(false);
+            console.log('No architecture found. Loading mock data for demonstration purposes.');
+            setArchitecture({ name: 'Mock Architecture Validation' });
+            runAnalysis(null); // passing null will trigger mock response logic
             return;
         }
 
@@ -42,8 +47,17 @@ export default function AnalyzeResultsPage() {
         setReport(null);
         setSaved(false);
         try {
-            const result = await analyzeArchitecture(data);
-            setReport(result);
+            let result;
+            if (!data) {
+                // Load dummy data if we hit the route directly for tests
+                const { sampleRuleEngineResponses } = await import('../utils/sampleData.js');
+                result = sampleRuleEngineResponses;
+            } else {
+                result = await analyzeArchitecture(data);
+            }
+            
+            const processedRisks = sortRisks((result.risks || []).map(processRisk));
+            setReport({ ...result, risks: processedRisks });
             // Optionally clear the pending analysis if we assert it's consumed
             // sessionStorage.removeItem('pending_analysis_json'); 
         } catch (err) {
@@ -71,6 +85,12 @@ export default function AnalyzeResultsPage() {
         setError('');
         try {
             await saveArchitecture(saveName, architecture);
+            
+            // Insert classified risks into Supabase if there are any
+            if (report && report.risks && report.risks.length > 0) {
+                await insertClassifiedRisks(saveName, report.risks);
+            }
+
             setSaved(true);
         } catch (err) {
             alert(err.response?.data?.detail || 'Failed to save. Check Supabase configuration.');
@@ -150,26 +170,9 @@ export default function AnalyzeResultsPage() {
 
             {saved && <div className="alert alert-success">✅ Report successfully saved to database!</div>}
 
-            <div ref={reportRef} style={{ padding: '0 0.5rem' }}>
-                {/* Severity Classification */}
-                <div className="stats-grid">
-                    <div className="stat-card stat-total">
-                        <div className="stat-value">{report.total_risks}</div>
-                        <div className="stat-label">Total Risks</div>
-                    </div>
-                    <div className="stat-card stat-high">
-                        <div className="stat-value">{report.high_risks}</div>
-                        <div className="stat-label">High Severity</div>
-                    </div>
-                    <div className="stat-card stat-medium">
-                        <div className="stat-value">{report.medium_risks}</div>
-                        <div className="stat-label">Medium Severity</div>
-                    </div>
-                    <div className="stat-card stat-low">
-                        <div className="stat-value">{report.low_risks}</div>
-                        <div className="stat-label">Low Severity</div>
-                    </div>
-                </div>
+            <div ref={reportRef} style={{ padding: '0 0.5rem', marginTop: '1rem' }}>
+                <RiskDistributionCharts risks={report.risks} />
+                <RiskSummaryCards risks={report.risks} />
 
                 {/* Detected Risks List */}
                 <div className="card">
