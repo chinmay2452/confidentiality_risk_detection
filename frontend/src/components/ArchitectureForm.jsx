@@ -17,51 +17,51 @@ const defaultConnection = {
 
 const defaultRole = { name: '', privileges: '' }; // privileges as a comma-separated string for input
 
-export default function ArchitectureForm({ onSubmit }) {
-    const [components, setComponents] = useState([{ ...defaultComponent }]);
-    const [connections, setConnections] = useState([{ ...defaultConnection }]);
-    const [roles, setRoles] = useState([{ ...defaultRole }]);
+export default function ArchitectureForm({ architecture, onChange }) {
+    const components = architecture.components || [];
+    const connections = architecture.connections || [];
+    const roles = architecture.roles || [];
 
-    const addComponent = () => setComponents([...components, { ...defaultComponent }]);
-    const removeComponent = (i) => setComponents(components.filter((_, idx) => idx !== i));
-
+    const addComponent = () => onChange({ ...architecture, components: [...components, { ...defaultComponent }] });
+    const removeComponent = (i) => onChange({ ...architecture, components: components.filter((_, idx) => idx !== i) });
     const updateComponent = (i, field, value) => {
         const updated = [...components];
         updated[i] = { ...updated[i], [field]: value };
-        setComponents(updated);
+        onChange({ ...architecture, components: updated });
     };
 
-    const addConnection = () => setConnections([...connections, { ...defaultConnection }]);
-    const removeConnection = (i) => setConnections(connections.filter((_, idx) => idx !== i));
-
+    const addConnection = () => onChange({ ...architecture, connections: [...connections, { ...defaultConnection }] });
+    const removeConnection = (i) => onChange({ ...architecture, connections: connections.filter((_, idx) => idx !== i) });
     const updateConnection = (i, field, value) => {
         const updated = [...connections];
         updated[i] = { ...updated[i], [field]: value };
-        setConnections(updated);
+        onChange({ ...architecture, connections: updated });
     };
 
-    const addRole = () => setRoles([...roles, { ...defaultRole }]);
-    const removeRole = (i) => setRoles(roles.filter((_, idx) => idx !== i));
-
+    const addRole = () => onChange({ ...architecture, roles: [...roles, { ...defaultRole }] });
+    const removeRole = (i) => onChange({ ...architecture, roles: roles.filter((_, idx) => idx !== i) });
     const updateRole = (i, field, value) => {
+        let val = value;
+        // Keep it as a raw string for editing, or array if parsed. To make it smooth, we handle string updates and array conversion later.
+        // Wait, if it's already an array from JSON, we should join it for the input.
+        if (field === 'privileges' && Array.isArray(value)) {
+            val = value.join(', ');
+        }
         const updated = [...roles];
-        updated[i] = { ...updated[i], [field]: value };
-        setRoles(updated);
+        
+        // When updating from string, store it as array to keep JSON valid. 
+        if (field === 'privileges' && typeof value === 'string') {
+             updated[i] = { ...updated[i], [field]: value.split(',').map(p => p.trim()).filter(p => p) };
+        } else {
+             updated[i] = { ...updated[i], [field]: val };
+        }
+        
+        onChange({ ...architecture, roles: updated });
     };
 
-    const handleSubmit = () => {
-        const validComponents = components.filter((c) => c.name.trim());
-        const validConnections = connections.filter((c) => c.source.trim() && c.target.trim());
-        const validRoles = roles.filter((r) => r.name.trim()).map(r => ({
-            name: r.name,
-            privileges: r.privileges.split(',').map(p => p.trim()).filter(p => p) // split string to array
-        }));
-
-        if (validComponents.length === 0) {
-            alert('Please add at least one component with a name.');
-            return;
-        }
-        onSubmit({ components: validComponents, connections: validConnections, roles: validRoles });
+    const getRolePrivilegesString = (rolePrivileges) => {
+        if (Array.isArray(rolePrivileges)) return rolePrivileges.join(', ');
+        return rolePrivileges || '';
     };
 
     return (
@@ -78,7 +78,7 @@ export default function ArchitectureForm({ onSubmit }) {
                             <input
                                 className="form-input"
                                 placeholder="e.g. Admin"
-                                value={role.name}
+                                value={role.name || ''}
                                 onChange={(e) => updateRole(i, 'name', e.target.value)}
                             />
                         </div>
@@ -87,7 +87,7 @@ export default function ArchitectureForm({ onSubmit }) {
                             <input
                                 className="form-input"
                                 placeholder="e.g. read, write, *"
-                                value={role.privileges}
+                                value={getRolePrivilegesString(role.privileges)}
                                 onChange={(e) => updateRole(i, 'privileges', e.target.value)}
                             />
                         </div>
@@ -110,7 +110,7 @@ export default function ArchitectureForm({ onSubmit }) {
                                 <input
                                     className="form-input"
                                     placeholder="e.g. User Dashboard"
-                                    value={comp.name}
+                                    value={comp.name || ''}
                                     onChange={(e) => updateComponent(i, 'name', e.target.value)}
                                 />
                             </div>
@@ -118,7 +118,7 @@ export default function ArchitectureForm({ onSubmit }) {
                                 <label>Type</label>
                                 <select
                                     className="form-select"
-                                    value={comp.type}
+                                    value={comp.type || 'backend'}
                                     onChange={(e) => updateComponent(i, 'type', e.target.value)}
                                 >
                                     {COMPONENT_TYPES.map((t) => (
@@ -131,27 +131,27 @@ export default function ArchitectureForm({ onSubmit }) {
                         
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: '4px' }}>
                             <div className="form-checkbox">
-                                <input type="checkbox" checked={comp.stores_sensitive_data} onChange={(e) => updateComponent(i, 'stores_sensitive_data', e.target.checked)} />
+                                <input type="checkbox" checked={comp.stores_sensitive_data || false} onChange={(e) => updateComponent(i, 'stores_sensitive_data', e.target.checked)} />
                                 <label style={{ marginBottom: 0 }}>Stores Sensitive Data</label>
                             </div>
                             <div className="form-checkbox">
-                                <input type="checkbox" checked={comp.has_authentication} onChange={(e) => updateComponent(i, 'has_authentication', e.target.checked)} />
+                                <input type="checkbox" checked={comp.has_authentication || false} onChange={(e) => updateComponent(i, 'has_authentication', e.target.checked)} />
                                 <label style={{ marginBottom: 0 }}>Has Authentication</label>
                             </div>
                             <div className="form-checkbox">
-                                <input type="checkbox" checked={comp.is_untrusted} onChange={(e) => updateComponent(i, 'is_untrusted', e.target.checked)} />
+                                <input type="checkbox" checked={comp.is_untrusted || false} onChange={(e) => updateComponent(i, 'is_untrusted', e.target.checked)} />
                                 <label style={{ marginBottom: 0, color: 'var(--severity-high)' }} title="E.g., external unverified plugin">Is Untrusted</label>
                             </div>
                             <div className="form-checkbox">
-                                <input type="checkbox" checked={comp.has_hardcoded_credentials} onChange={(e) => updateComponent(i, 'has_hardcoded_credentials', e.target.checked)} />
+                                <input type="checkbox" checked={comp.has_hardcoded_credentials || false} onChange={(e) => updateComponent(i, 'has_hardcoded_credentials', e.target.checked)} />
                                 <label style={{ marginBottom: 0, color: 'var(--severity-high)' }}>Hardcoded Credentials</label>
                             </div>
                             <div className="form-checkbox">
-                                <input type="checkbox" checked={comp.logs_sensitive_data} onChange={(e) => updateComponent(i, 'logs_sensitive_data', e.target.checked)} />
+                                <input type="checkbox" checked={comp.logs_sensitive_data || false} onChange={(e) => updateComponent(i, 'logs_sensitive_data', e.target.checked)} />
                                 <label style={{ marginBottom: 0, color: 'var(--severity-medium)' }}>Logs Sensitive Data</label>
                             </div>
                             <div className="form-checkbox">
-                                <input type="checkbox" checked={comp.exposes_session_tokens} onChange={(e) => updateComponent(i, 'exposes_session_tokens', e.target.checked)} />
+                                <input type="checkbox" checked={comp.exposes_session_tokens || false} onChange={(e) => updateComponent(i, 'exposes_session_tokens', e.target.checked)} />
                                 <label style={{ marginBottom: 0, color: 'var(--severity-high)' }}>Exposes Tokens</label>
                             </div>
                         </div>
@@ -173,7 +173,7 @@ export default function ArchitectureForm({ onSubmit }) {
                                 <input
                                     className="form-input"
                                     placeholder="Source name"
-                                    value={conn.source}
+                                    value={conn.source || ''}
                                     onChange={(e) => updateConnection(i, 'source', e.target.value)}
                                 />
                             </div>
@@ -182,7 +182,7 @@ export default function ArchitectureForm({ onSubmit }) {
                                 <input
                                     className="form-input"
                                     placeholder="Target name"
-                                    value={conn.target}
+                                    value={conn.target || ''}
                                     onChange={(e) => updateConnection(i, 'target', e.target.value)}
                                 />
                             </div>
@@ -191,15 +191,15 @@ export default function ArchitectureForm({ onSubmit }) {
                         
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', marginTop: '0.5rem', background: 'rgba(0,0,0,0.2)', padding: '0.75rem', borderRadius: '4px' }}>
                             <div className="form-checkbox">
-                                <input type="checkbox" checked={conn.encrypted} onChange={(e) => updateConnection(i, 'encrypted', e.target.checked)} />
+                                <input type="checkbox" checked={conn.encrypted || false} onChange={(e) => updateConnection(i, 'encrypted', e.target.checked)} />
                                 <label style={{ marginBottom: 0, color: 'var(--success)' }}>Encrypted (TLS)</label>
                             </div>
                             <div className="form-checkbox">
-                                <input type="checkbox" checked={conn.has_authentication} onChange={(e) => updateConnection(i, 'has_authentication', e.target.checked)} />
+                                <input type="checkbox" checked={conn.has_authentication || false} onChange={(e) => updateConnection(i, 'has_authentication', e.target.checked)} />
                                 <label style={{ marginBottom: 0 }}>Has Authentication</label>
                             </div>
                             <div className="form-checkbox">
-                                <input type="checkbox" checked={conn.missing_authorization_headers} onChange={(e) => updateConnection(i, 'missing_authorization_headers', e.target.checked)} />
+                                <input type="checkbox" checked={conn.missing_authorization_headers || false} onChange={(e) => updateConnection(i, 'missing_authorization_headers', e.target.checked)} />
                                 <label style={{ marginBottom: 0, color: 'var(--severity-medium)' }}>Missing Auth Headers</label>
                             </div>
                         </div>
@@ -207,10 +207,6 @@ export default function ArchitectureForm({ onSubmit }) {
                 ))}
                 <button className="btn-add" onClick={addConnection}>+ Add Connection</button>
             </div>
-
-            <button className="btn btn-primary" onClick={handleSubmit} style={{ width: '100%', padding: '1rem', fontSize: '1rem' }}>
-                🔍 Analyze Architecture
-            </button>
         </div>
     );
 }
