@@ -8,6 +8,29 @@ export default function Dashboard() {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [mlTestResult, setMlTestResult] = useState(null);
+    const [mlLoading, setMlLoading] = useState(false);
+
+    const runMLTest = async () => {
+        setMlLoading(true);
+        try {
+            const res = await fetch('http://localhost:8000/api/hybrid-test', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    "risk_type": "Unencrypted API",
+                    "rule_severity": "High",
+                    "component": "Auth Service"
+                })
+            });
+            const data = await res.json();
+            setMlTestResult(data);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setMlLoading(false);
+        }
+    };
 
     useEffect(() => {
         fetchData();
@@ -85,6 +108,48 @@ export default function Dashboard() {
                 <div className="stat-card" style={{ cursor: 'pointer' }} onClick={() => navigate('/input')}>
                     <div className="stat-value" style={{ color: 'var(--accent-primary)' }}>+</div>
                     <div className="stat-label">New Analysis</div>
+                </div>
+            </div>
+
+            {/* ML Hybrid Engine Live Test */}
+            <div className="card animate-in" style={{ marginTop: '2rem', borderLeft: '4px solid var(--accent-primary)' }}>
+                <div className="card-title"><span className="icon">🤖</span> AI Hybrid Risk Engine (Live Test)</div>
+                <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                    Simulate sending a deterministic "High Risk" rule to the ML engine to see how it automatically reclassifies risks using machine learning confidence thresholds.
+                </p>
+                
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1, background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px' }}>
+                        <h4 style={{ marginBottom: '0.5rem' }}>Input (Rule Engine)</h4>
+                        <pre style={{ fontSize: '13px', margin: 0, color: 'var(--text-secondary)' }}>
+{`{
+  "risk_type": "Unencrypted API",
+  "rule_severity": "High",
+  "component": "Auth Service"
+}`}
+                        </pre>
+                        <button 
+                            className="btn btn-primary" 
+                            style={{ marginTop: '1rem', width: '100%' }}
+                            onClick={runMLTest}
+                            disabled={mlLoading}
+                        >
+                            {mlLoading ? 'Analyzing via ML...' : 'Run Hybrid ML Analysis'}
+                        </button>
+                    </div>
+
+                    <div style={{ flex: 1, background: 'var(--bg-secondary)', padding: '1rem', borderRadius: '8px', minHeight: '160px' }}>
+                        <h4 style={{ marginBottom: '0.5rem' }}>Output (Hybrid ML Logic)</h4>
+                        {mlTestResult ? (
+                            <pre style={{ fontSize: '13px', margin: 0, color: mlTestResult.decision_source === 'ml' ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
+{JSON.stringify(mlTestResult, null, 2)}
+                            </pre>
+                        ) : (
+                            <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic', display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                                Awaiting input...
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 

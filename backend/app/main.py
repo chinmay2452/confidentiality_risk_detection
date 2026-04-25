@@ -38,3 +38,26 @@ def root():
         "message": "Architecture Confidentiality Risk Detector API",
         "docs": "/docs",
     }
+
+import sys
+import os
+# Add ml_engine to path so we can import it
+ml_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ml_engine")
+sys.path.append(ml_path)
+
+try:
+    from hybrid_engine import evaluate_hybrid_risk
+except ImportError:
+    evaluate_hybrid_risk = None
+
+@app.post("/api/hybrid-test")
+def run_hybrid_test(rule: dict):
+    if evaluate_hybrid_risk is None:
+        return {"error": "ML engine not available. Please train models first."}
+    try:
+        result = evaluate_hybrid_risk(rule)
+        return result
+    except Exception as e:
+        return {"error": str(e)}
+
+# Trigger reload
