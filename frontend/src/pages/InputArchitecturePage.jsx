@@ -55,7 +55,7 @@ export default function InputArchitecturePage() {
             const parsed = JSON.parse(text);
             setArchitecture({
                 components: parsed.components || [],
-                connections: parsed.connections || [],
+                connections: parsed.connections || parsed.dataFlows || parsed.data_flows || [],
                 roles: parsed.roles || []
             });
             setJsonError(null);
@@ -65,7 +65,11 @@ export default function InputArchitecturePage() {
     };
 
     const handleJsonLoaded = (json) => {
-        setArchitecture(json);
+        setArchitecture({
+            components: json.components || [],
+            connections: json.connections || json.dataFlows || json.data_flows || [],
+            roles: json.roles || []
+        });
         setActiveTab('review');
     };
 
