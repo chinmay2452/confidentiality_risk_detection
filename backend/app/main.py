@@ -4,6 +4,14 @@ Architecture Confidentiality Risk Detector — Backend
 FastAPI application entry point.
 """
 
+# ── Patch sys.path FIRST so ml_engine sub-imports (predictor, etc.) resolve ──
+import sys
+import os
+
+_ml_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ml_engine")
+if _ml_path not in sys.path:
+    sys.path.insert(0, _ml_path)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes.analysis import router as analysis_router
@@ -39,25 +47,21 @@ def root():
         "docs": "/docs",
     }
 
-import sys
-import os
-# Add ml_engine to path so we can import it
-ml_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "ml_engine")
-sys.path.append(ml_path)
-
 try:
     from hybrid_engine import evaluate_hybrid_risk
-except ImportError:
+    _HYBRID_AVAILABLE = True
+except Exception as _hybrid_err:
     evaluate_hybrid_risk = None
+    _HYBRID_AVAILABLE = False
+    print(f"[WARNING] ML hybrid engine failed to load: {_hybrid_err}")
+
 
 @app.post("/api/hybrid-test")
 def run_hybrid_test(rule: dict):
-    if evaluate_hybrid_risk is None:
+    if not _HYBRID_AVAILABLE:
         return {"error": "ML engine not available. Please train models first."}
     try:
         result = evaluate_hybrid_risk(rule)
         return result
     except Exception as e:
         return {"error": str(e)}
-
-# Trigger reload
